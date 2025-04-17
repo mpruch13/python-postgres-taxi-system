@@ -1,5 +1,3 @@
--- SQL script from phase 2 to initialize the database
-
 -- Relationships: none
 CREATE TABLE IF NOT EXISTS Manager(
     ssn CHAR(9),
