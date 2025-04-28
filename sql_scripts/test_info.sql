@@ -20,16 +20,16 @@ INSERT INTO Model VALUES('M4556677', 'silver', 'automatic', 2025, 'C3333333');
 INSERT INTO Model VALUES('M5667788', 'silver', 'manual', 2025, 'C3333333');
 
 -- Addresses
-INSERT INTO Address VALUES('A1111111', 1234, 'Main Street', 'Taxi Town');
-INSERT INTO Address VALUES('A2222222', 4427, 'North South Ave', 'Taxi Town');
-INSERT INTO Address VALUES('A3333333', 2929, 'South North Ave', 'Taxi Town');
-INSERT INTO Address VALUES('A4444444', 5678, 'East West Road', 'Taxi Town');
-INSERT INTO Address VALUES('A5555555', 5678, 'West East Drive', 'Taxi Town');
+INSERT INTO Address VALUES(1234, 'Main St', 'Taxi Town');
+INSERT INTO Address VALUES(4427, 'North Ave', 'Taxi Town');
+INSERT INTO Address VALUES(2929, 'South Ave', 'Taxi Town');
+INSERT INTO Address VALUES(5678, 'East Ave', 'Taxi Town');
+INSERT INTO Address VALUES(9101, 'West Ave', 'Taxi Town');
 
 -- Drivers
-INSERT INTO Driver VALUES('Stanley', 'A1111111');
-INSERT INTO Driver VALUES('Alice', 'A2222222');
-INSERT INTO Driver VALues('Charles', 'A3333333');
+INSERT INTO Driver VALUES('Stanley', 1234, 'Main St', 'Taxi Town');
+INSERT INTO Driver VALUES('Alice', 4427, 'North Ave', 'Taxi Town');
+INSERT INTO Driver VALues('Charles', 2929, 'South Ave', 'Taxi Town');
 
 
 -- Clients
