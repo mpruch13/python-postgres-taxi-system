@@ -8,49 +8,6 @@ def isvalid_ssn(ssn):
     return (len(ssn) == 9 and ssn.isnumeric())
 
 
-
-def add_model(conn):
-    """Allows the user to enter a new car model into the database"""
-
-    ## Prompt user for manager info 
-    print("\nNew Car Model Registration:")
-
-    # Repeat prompt until user enters a 9-digit number for ssn
-    model_id = input("   Please enter an 8-character long model ID: ")
-    while len(model_id) != 8:
-        model_id = input("   Invalid id. Please enter exactly 8 characters, no spaces: ")
-    color = input("   Please enter a model color: ")
-    transmission = input("   Please enter a transmission type (0 for manual, 1 for automatic): ")
-    while transmission != "0" and transmission != "1":
-        transmission = input("   Invalid input. Enter 0 for manual, or 1 for automatic: ")
-    if transmission == "0":
-        transmission = 'manual'
-    else:
-        transmission = 'automatic'
-    year = input("   Please enter a model year: ")
-    car_id = input("    Please enter the car_id of the category/brand this model belongs to: ")
-
-    # Attempt to insert manager into the database
-    if(dbTier.insert_model(conn, model_id, color, transmission, year, car_id)):
-        print("\nSuccessfully registered the new model")
-
-def add_driver(conn):
-    """Allows the user to enter a new car table entry in the database"""
-
-    ## Prompt user for manager info 
-    print("\nNew Driver Registration:")
-
-    # Repeat prompt until user enters a 9-digit number for ssn
-    name = input("   Please enter a driver name: ")
-
-    address = input("   Please enter a driver address in the form (123 roa): ")
-
-    # Attempt to insert manager into the database
-    if(dbTier.insert_car(conn, car_id, brand)):
-        print("\nSuccessfully registered new car with ID:", car_id, "and Brand:", brand)
-
-
-
 def display_models_rents(conn):
     """Generate and displays a list containing every car in the db
        model alongside the number of rents it has been used"""
