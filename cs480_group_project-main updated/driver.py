@@ -34,6 +34,9 @@ def driver_menu(conn, name):
                 new_addr = input("   Enter new address ID: ")
                 if dbTier.update_driver_address(conn, name, new_addr):
                     print(f"\nAddress updated to {new_addr}")
+                ## validation
+                else:
+                    print(f"\nUpdate failed: Address ID may not exist.")
             case '2':
                 models = dbTier.get_all_models(conn)
                 print(f"\n{'Model ID':<10}{'Car ID':<10}{'Color':<10}{'Trans.':<10}{'Year':<6}")
@@ -44,6 +47,9 @@ def driver_menu(conn, name):
                 model_id = input("   Enter model ID to declare: ")
                 if dbTier.qualify_driver_for_model(conn, name, model_id):
                     print(f"\nDriver {name} now qualified for model {model_id}")
+                else:
+                    ##validation
+                    print(f"\nDeclaration failed: Model ID may not exist.")
             case 'x':
                 print("\nLogging out driver...")
             case _:
