@@ -2,16 +2,14 @@
 
 import psycopg2
 import manager
+import driver
+import client
 import re
 import sys
 
+
 def open_db():
-    """Reads database info from file \"dbinfo.txt\" and 
-       attempts to open a new dabase connection
-       
-       Returns:
-        Conn: A psycopg2 database connection object"""
-    
+    """Reads database info from file "dbinfo.txt" and attempts to open a new database connection"""
     with open("dbinfo.txt") as input_file:
         try:
             input_text = input_file.read()
@@ -19,22 +17,16 @@ def open_db():
             print("Could not get db info from file:", e)
             sys.exit()
 
-    # Process file text and split into lines
-    # (I know this is extra but I had the code already from a different project)
-    input_text = re.sub("#.*", "", input_text)
-    input_text = re.sub("\n\s*\n", "\n", input_text)
-    input_text = re.sub("^\n", "", input_text)
-    input_text = re.sub("\n*$", "", input_text)
+    # Process file text and remove comments and blank lines
+    input_text = re.sub(r"#.*", "", input_text)
+    input_text = re.sub(r"\n\s*\n", "\n", input_text)
+    input_text = re.sub(r"^\n", "", input_text)
+    input_text = re.sub(r"\n*$", "", input_text)
     lines = [line.strip() for line in input_text.split('\n')]
 
-    # Get info from file lines
-    db = lines[0]
-    host = lines[1]
-    user = lines[2]
-    pw = lines[3]
-    port = lines[4]
+    # Assign connection parameters
+    db, host, user, pw, port = lines
 
-    ## Attempt to create database connection
     try:
         conn = psycopg2.connect(database=db,
                                 host=host,
@@ -52,47 +44,34 @@ def main():
     conn = open_db()
     print("\nWelcome to the taxi rental management app!")
 
-    ## Main menu loop. Runs until user enter's 'x' to quit
     user_input = ''
-    while(user_input != 'x'):
-        ## Print prompt
+    while user_input != 'x':
+        # Display main menu options
         print("\nPlease select an action:")
         print("   1. Manager login\n" \
-                "   2. Driver login\n" \
-                "   3. Client login\n" \
-                "   4. Register new manager\n" \
-                "   5. Register new client\n")
-        ## 
+              "   2. Driver login\n" \
+              "   3. Client login\n" \
+              "   4. Register new manager\n" \
+              "   5. Register new client\n")
         user_input = input("Enter a command (1-5, or x to exit): ")
         match user_input:
             case "1":
                 manager.manager_login(conn)
             case "2":
-                print("TODO: Implement Driver features")
+                driver.driver_login(conn)
             case "3":
-                print("TODO: Implement Client features")
+                client.client_login(conn)
             case '4':
                 manager.register_manager(conn)
             case '5':
-                print("TODO: Implement client registration")
-            case'x':
+                client.register_client(conn)
+            case 'x':
                 pass
-            case default:
+            case _:
                 print("\nUnknown command, please try again\n")
-    # End of while loop: close db connection
+    # Close the database connection before exiting
     conn.close()
+
 
 if __name__ == "__main__":
     main()
-    
-
-
-
-
-
-
-
-
-
-
-

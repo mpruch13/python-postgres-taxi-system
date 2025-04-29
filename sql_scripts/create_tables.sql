@@ -55,10 +55,12 @@ CREATE TABLE IF NOT EXISTS Driver(
       --(e.g., make clients enter a credit card when they register)
 CREATE TABLE IF NOT EXISTS CreditCard(
     cc_number CHAR(16),
+    client text,
     addr_number int,
     road text,
     city text,
     PRIMARY KEY(cc_number),
+    FOREIGN KEY(client) REFERENCES client(email),
     FOREIGN KEY(addr_number, road, city) REFERENCES Address(number, road, city)
 );
 
@@ -79,10 +81,10 @@ CREATE TABLE IF NOT EXISTS Car(
    -- Driver: Handled with new table "Drives" (Rule 5)
 CREATE TABLE IF NOT EXISTS Model(
     model_id CHAR(8) UNIQUE,
+    car_id CHAR(8),
     color text,
     transmission text,
     year int,
-    car_id CHAR(8),
     PRIMARY KEY(model_id, car_id),
     FOREIGN KEY(car_id) REFERENCES Car(car_id)
 );
@@ -115,11 +117,10 @@ CREATE TABLE IF NOT EXISTS Rent(
    -- Rent: Added foreign key to Rent (Rule 4)
 CREATE TABLE IF NOT EXISTS Review(
     review_id CHAR(8),
+	driver text,
+	client text,
     message text,
     rating int,
-    year int,
-    driver text,
-    client text,
     PRIMARY KEY(review_id, driver),
     FOREIGN KEY(driver) REFERENCES Driver(name),
     FOREIGN KEY(client) REFERENCES Client(email)
