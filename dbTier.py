@@ -286,11 +286,9 @@ def get_clients_by_cities(conn:psycopg2.extensions.connection, city1, city2):
     dbQuery = """SELECT DISTINCT c.email, c.name
                  FROM Client c
                  JOIN ClientAddresses ca ON c.email = ca.client
-                 JOIN Address a1 ON ca.address_id = a1.address_id
                  JOIN Rent r ON c.email = r.client
                  JOIN Driver d ON r.driver = d.name
-                 JOIN Address a2 ON d.address_id = a2.address_id
-                 WHERE a1.city = %s AND a2.city = %s;"""
+                 WHERE ca.city = %s AND d.city = %s;"""
     curr = conn.cursor()
     curr.execute(dbQuery, (city1, city2))
     results = curr.fetchall()
