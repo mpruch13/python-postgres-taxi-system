@@ -85,27 +85,37 @@ def edit_cars(conn):
             case "3":
                 # Remove a car model
                 model_id = input("   Enter the model_id to remove: ")
-                curr = conn.cursor()
-                try:
-                    curr.execute("DELETE FROM Model WHERE model_id = %s", (model_id,))
-                    conn.commit()
-                    print(f"\nSuccessfully removed model {model_id}")
-                except Exception as e:
-                    print("\nFailed to remove model: ", e)
-                finally:
-                    curr.close()
+                ##removal validation
+                confirm = input(f"   Are you sure you want to delete model {model_id}? (y/n): ")
+                if confirm.lower() == 'y':
+                    curr = conn.cursor()
+                    try:
+                        curr.execute("DELETE FROM Model WHERE model_id = %s", (model_id,))
+                        conn.commit()
+                        print(f"\nSuccessfully removed model {model_id}")
+                    except Exception as e:
+                        print("\nFailed to remove model: ", e)
+                    finally:
+                        curr.close()
+                else:
+                    print("Deletion cancelled.")
             case "4":
                 # Remove a car and its models
                 car_id = input("   Enter the car_id to remove: ")
-                curr = conn.cursor()
-                try:
-                    curr.execute("DELETE FROM Car WHERE car_id = %s", (car_id,))
-                    conn.commit()
-                    print(f"\nSuccessfully removed car {car_id} and its models")
-                except Exception as e:
-                    print("\nFailed to remove car: ", e)
-                finally:
-                    curr.close()
+                ##removal validation
+                confirm = input(f"   Are you sure you want to delete car {car_id} and its models? (y/n): ")
+                if confirm.lower() == 'y':
+                    curr = conn.cursor()
+                    try:
+                        curr.execute("DELETE FROM Car WHERE car_id = %s", (car_id,))
+                        conn.commit()
+                        print(f"\nSuccessfully removed car {car_id} and its models")
+                    except Exception as e:
+                        print("\nFailed to remove car: ", e)
+                    finally:
+                        curr.close()
+                else:
+                    print("Deletion cancelled")
             case "5":
                 user_input = 'x'
             case _:
@@ -131,8 +141,13 @@ def manage_drivers(conn):
             case "2":
                 print("\nRemove Driver:")
                 name = input("   Enter driver name to remove: ")
-                if dbTier.delete_driver(conn, name):
-                    print(f"\nSuccessfully removed driver {name}")
+                ##added confirmation
+                confirm = input(f"   Are you sure you want to delete driver {name}? (y/n): ")
+                if confirm.lower() == 'y':
+                    if dbTier.delete_driver(conn, name):
+                        print(f"\nSuccessfully removed driver {name}")
+                else:
+                    print("Deletion Cancelled.")
             case "3":
                 user_input = 'x'
             case _:
