@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS Model(
     year int,
     PRIMARY KEY(model_id, car_id),
     FOREIGN KEY(car_id) REFERENCES Car(car_id)
+    ON DELETE CASCADE -- delete all models with car id when car is deleted
 );
 
 
@@ -104,8 +105,11 @@ CREATE TABLE IF NOT EXISTS Rent(
     model CHAR(8),
     PRIMARY KEY(rent_id),
     FOREIGN KEY(client) REFERENCES Client(email),
-    FOREIGN KEY(driver) REFERENCES Driver(name),
-    FOREIGN KEY(model) REFERENCES Model(model_id)
+    -- Delete rent records when the referenced driver/model is deleted
+    FOREIGN KEY(driver) REFERENCES Driver(name)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY(model) REFERENCES Model(model_id) ON DELETE CASCADE
 );
 
 
@@ -122,7 +126,9 @@ CREATE TABLE IF NOT EXISTS Review(
     message text,
     rating int,
     PRIMARY KEY(review_id, driver),
-    FOREIGN KEY(driver) REFERENCES Driver(name),
+    FOREIGN KEY(driver) REFERENCES Driver(name) 
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
     FOREIGN KEY(client) REFERENCES Client(email)
 );
 
@@ -153,6 +159,9 @@ CREATE TABLE IF NOT EXISTS Drives(
     driver text,
     model CHAR(8),
     PRIMARY KEY (driver,model),
-    FOREIGN KEY(driver) REFERENCES driver(name),
-    FOREIGN KEY(model) REFERENCES Model(model_id)
+    -- Delete drives entries when the referenced driver or model is deleted 
+    FOREIGN KEY(driver) REFERENCES Driver(name) 
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    FOREIGN KEY(model) REFERENCES Model(model_id) ON DELETE CASCADE
 );

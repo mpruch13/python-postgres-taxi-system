@@ -205,14 +205,14 @@ def get_car(conn:psycopg2.extensions.connection, car_id):
     return car
 
 def get_driver(conn:psycopg2.extensions.connection, name):
-    dbQuery = "SELECT * FROM Driver WHERE Name = %s"
+    dbQuery = "SELECT * FROM Driver WHERE name = %s"
     curr = conn.cursor()
     curr.execute(dbQuery, (name,))
     driver = curr.fetchone()
     curr.close()
     return driver
 
-def get_driver(conn:psycopg2.extensions.connection, email):
+def get_client(conn:psycopg2.extensions.connection, email):
     dbQuery = "SELECT * FROM Client WHERE email = %s"
     curr = conn.cursor()
     curr.execute(dbQuery, (email,))
@@ -344,7 +344,8 @@ def delete_driver(conn:psycopg2.extensions.connection, name):
     try:
         curr.execute(dbQuery, (name,))
         conn.commit()
-        is_successful = True
+        if curr.rowcount > 0:
+            is_successful = True
     except Exception as e:
         print("\nFailed to delete driver: ", e)
     finally:
@@ -377,6 +378,40 @@ def update_driver_address(conn:psycopg2.extensions.connection, name, number, roa
         conn.commit()
         if curr.fetchone() is not None:
             is_successful = True
+    except Exception as e:
+        print("\nFailed to update database: ", e)
+    finally:
+        curr.close()
+    return is_successful
+
+def update_driver_name(conn:psycopg2.extensions.connection, old_name, new_name):
+    """
+    Updates a driver's address.
+
+    Parameters:
+        conn: The database connection
+        name: Driver name
+        new_address_id: New address identifier
+
+    Returns:
+        True if update successful, False otherwise
+    """
+    is_successful = False
+    dbQuery = """UPDATE Driver 
+                 SET name = %s
+                 WHERE name = %s
+                 RETURNING *"""
+    curr = conn.cursor()
+    is_successful = False
+    curr = conn.cursor()
+    try:
+        curr.execute(dbQuery, (new_name, old_name))
+        conn.commit()
+        if curr.fetchone() is not None:
+            is_successful = True
+    except errors.UniqueViolation:
+        is_successful = False
+        conn.rollback()
     except Exception as e:
         print("\nFailed to update database: ", e)
     finally:

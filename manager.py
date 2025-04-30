@@ -159,6 +159,56 @@ def edit_cars(conn):
             case _:
                 print("Unknown command, please try again")
 
+def change_driver_name(conn, name):
+    new_name = input("   Enter new driver name: ")
+    if dbTier.update_driver_name(conn, name, new_name):
+        print(f"\nSuccessfully changed driver name from \"{name}\" to \"{new_name}\"")
+        return new_name
+    else:
+        print(f"\nFailed to update name. Driver name \"{new_name}\" already exists.")
+        return name
+
+def change_driver_address(conn, name):
+    number, street, city = get_address()
+    # Insert address to Address table if it does not exist
+    dbTier.insert_address(conn, number, street, city)
+    # Update Address in Driver table
+    if dbTier.update_driver_address(conn, name, number, street, city):
+        print(f"\nAddress updated to {number} {street}, {city}")
+    ## validation
+    else:
+        print(f"\nFailed to update Address.")
+
+def edit_driver_menu(conn):
+    """Sub-menu for changing a driver's information"""
+    name = input("\n  Enter name of driver to edit: ")
+    driver = dbTier.get_driver(conn, name)
+    if driver is None:
+        print(f"Driver \"{name}\" does not exist")
+        return
+    name = driver[0]
+    user_input = ''
+    while(user_input != 'x'):
+        print("\nChoose Update Action:")
+        print("   1. Change Name\n"\
+              "   2. Change Address\n"
+              "   3. Change Both")
+        user_input = input("\nEnter a command: ")
+        match user_input:
+            case "1":
+                change_driver_name(conn, name)
+                user_input = "x"
+            case "2":
+                change_driver_address(conn, name)
+                user_input = "x"
+            case "3":
+                name = change_driver_name(conn, name)
+                print()
+                change_driver_address(conn, name)
+                user_input = "x"
+            case default:
+                print("Unknown command, please try again") 
+
 
 def manage_drivers(conn):
     """Sub-menu for managing driver records"""
@@ -167,7 +217,8 @@ def manage_drivers(conn):
         print("\nDriver management actions:")
         print("   1. Register new driver")
         print("   2. Remove existing driver")
-        print("   3. Return to manager menu")
+        print("   3. Edit driver info")
+        print("   4. Return to manager menu")
         user_input = input("Enter a command (1-3): ")
         match user_input:
             case "1":
@@ -180,9 +231,13 @@ def manage_drivers(conn):
                 if confirm.lower() == 'y':
                     if dbTier.delete_driver(conn, name):
                         print(f"\nSuccessfully removed driver {name}")
+                    else:
+                        print(f"Failed to remove driver: Driver \"{name}\" could not be found.")
                 else:
                     print("Deletion Cancelled.")
             case "3":
+                edit_driver_menu(conn)
+            case "4":
                 user_input = 'x'
             case _:
                 print("Unknown command, please try again")
