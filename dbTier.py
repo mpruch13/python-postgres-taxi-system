@@ -613,15 +613,23 @@ def book_rent(conn:psycopg2.extensions.connection, rent_id, date, client, model_
         True if booking successful, False otherwise
     """
     curr = conn.cursor()
+    
+    try:
     # Find an available driver for the model on that date
-    driver_query = """
-        SELECT d.driver
-        FROM Drives d
-        LEFT JOIN Rent r ON d.driver = r.driver AND r.date = %s
-        WHERE d.model = %s AND r.rent_id IS NULL
-        LIMIT 1;
-    """
-    curr.execute(driver_query, (date, model_id))
+        driver_query = """
+            SELECT d.driver
+            FROM Drives d
+            LEFT JOIN Rent r ON d.driver = r.driver AND r.date = %s
+            WHERE d.model = %s AND r.rent_id IS NULL
+            LIMIT 1;
+            """
+    
+        curr.execute(driver_query, (date, model_id))
+    except Exception as e:
+        # If any exception occurs, print a message and return False
+        print(f"\nTry again")
+        curr.close()
+        return False
     row = curr.fetchone()
     if not row:
         print("\nNo available driver for model on this date.")
