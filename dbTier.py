@@ -15,7 +15,7 @@ from psycopg2.extensions import connection
 
 ### General ###
 
-def insert_address(conn:psycopg2.extensions.connection, number, road, city):
+def insert_address(conn:psycopg2.extensions.connection, number, road, city, commit=True):
     """
     Searches the database for an address
 
@@ -35,11 +35,13 @@ def insert_address(conn:psycopg2.extensions.connection, number, road, city):
     curr = conn.cursor()
     try:
         curr.execute(dbQuery, (number, road, city))
-        conn.commit()
+        if commit:
+            conn.commit()
         if curr.fetchone() != None:
             is_successful = True
     except Exception as e:
         print("\nFailed to add manager to database: ", e)
+        conn.rollback()
     finally:
         curr.close()
 
@@ -96,6 +98,7 @@ def insert_model(conn:psycopg2.extensions.connection, model_id, color, transmiss
             is_successful = True
     except Exception as e:
         print("\nError inserting model: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return is_successful
@@ -125,6 +128,7 @@ def insert_car(conn:psycopg2.extensions.connection, car_id, brand):
             is_successful = True
     except Exception as e:
         print("\nFailed to add new car: ", e)
+        conn.rollback()
     finally:
         curr.close()
 
@@ -157,6 +161,7 @@ def insert_manager(conn:psycopg2.extensions.connection, ssn, email, name):
             is_successful = True
     except Exception as e:
         print("\Error:", e)
+        conn.rollback()
     finally:
         curr.close()
 
@@ -322,6 +327,7 @@ def insert_driver(conn:psycopg2.extensions.connection, name, number, road, city)
             is_successful = True
     except Exception as e:
         print("\nError inserting driver into database: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return is_successful
@@ -348,6 +354,7 @@ def delete_driver(conn:psycopg2.extensions.connection, name):
             is_successful = True
     except Exception as e:
         print("\nFailed to delete driver: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return is_successful
@@ -380,6 +387,7 @@ def update_driver_address(conn:psycopg2.extensions.connection, name, number, roa
             is_successful = True
     except Exception as e:
         print("\nFailed to update database: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return is_successful
@@ -414,6 +422,7 @@ def update_driver_name(conn:psycopg2.extensions.connection, old_name, new_name):
         conn.rollback()
     except Exception as e:
         print("\nFailed to update database: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return is_successful
@@ -468,13 +477,14 @@ def qualify_driver_for_model(conn:psycopg2.extensions.connection, name, model_id
     # Some other error, print exception here
     except Exception as e:
         print("Error inserting into db: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return return_val
 
 ### Client Options ###
 
-def insert_client(conn:psycopg2.extensions.connection, email, name):
+def insert_client(conn:psycopg2.extensions.connection, email, name, commit=True):
     """
     Inserts a new client into the database.
 
@@ -488,19 +498,28 @@ def insert_client(conn:psycopg2.extensions.connection, email, name):
     """
     is_successful = False
     dbQuery = "INSERT INTO Client (email, name) VALUES (%s, %s)"
+    dbQuery = """INSERT INTO Client (email, name)
+                 VALUES(%s, %s) 
+                 ON CONFLICT (email)
+                 DO NOTHING
+                 RETURNING 1"""
     curr = conn.cursor()
     try:
         curr.execute(dbQuery, (email, name))
-        conn.commit()
-        is_successful = True
+        # Only commit if commit is true
+        if commit:
+            conn.commit()
+        if curr.fetchone() is not None:
+            is_successful = True
     except Exception as e:
         print("\nFailed to add client: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return is_successful
 
 
-def insert_client_address(conn:psycopg2.extensions.connection, email, number, road, city):
+def insert_client_address(conn:psycopg2.extensions.connection, email, number, road, city, commit=True):
     """
     Associates a client with an address.
 
@@ -521,17 +540,19 @@ def insert_client_address(conn:psycopg2.extensions.connection, email, number, ro
     curr = conn.cursor()
     try:
         curr.execute(dbQuery, (email, number, road, city))
-        conn.commit()
+        if commit:
+            conn.commit()
         if curr.fetchone() is not None:
             is_successful = True
     except Exception as e:
         print("\nFailed to add client address: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return is_successful
 
 
-def insert_credit_card(conn:psycopg2.extensions.connection, cc_number, email, number, road, city):
+def insert_credit_card(conn:psycopg2.extensions.connection, cc_number, email, number, road, city, commit=True):
     """
     Inserts a new credit card for a client.
 
@@ -553,11 +574,13 @@ def insert_credit_card(conn:psycopg2.extensions.connection, cc_number, email, nu
     curr = conn.cursor()
     try:
         curr.execute(dbQuery, (cc_number, email, number, road, city))
-        conn.commit()
+        if commit:
+            conn.commit()
         if curr.fetchone() is not None:
             is_successful = True
     except Exception as e:
         print("\nFailed to add credit card: ", e)
+        conn.rollback()
     finally:
         curr.close()
     return is_successful
@@ -629,6 +652,7 @@ def book_rent(conn:psycopg2.extensions.connection, rent_id, date, client, model_
         # If any exception occurs, print a message and return False
         print(f"\nTry again")
         curr.close()
+        conn.rollback()
         return False
     row = curr.fetchone()
     if not row:
@@ -644,6 +668,7 @@ def book_rent(conn:psycopg2.extensions.connection, rent_id, date, client, model_
         conn.commit()
     except Exception as e:
         print("\nFailed to book rent: ", e)
+        conn.rollback()
         curr.close()
         return False
 
@@ -707,6 +732,7 @@ def insert_review(conn:psycopg2.extensions.connection, review_id, client, driver
     except Exception as e:
         print("\nFailed to add review: ", e)
         curr.close()
+        conn.rollback()
         return False
 
     curr.close()

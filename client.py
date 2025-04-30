@@ -2,6 +2,9 @@
 
 import dbTier
 
+def is_valid_card(cc):
+    return len(cc) == 16 and cc.isnumeric()
+
 def get_address():
     number = input("     Number: ")
     while not number.isnumeric():
@@ -18,43 +21,68 @@ def register_client(conn):
     name  = input("   Enter your name: ")
 
     # Insert client record
-    if not dbTier.insert_client(conn, email, name):
-        print("\nRegistration failed: could not add client.")
+    if not dbTier.insert_client(conn, email, name, commit=False):
+        print("\nRegistration failed: client email already in use.")
         return
 
     print(f"\nClient {email} registered successfully.")
 
+    one_addr = False
+    one_cc = False
+
+    print("\nNew client address registration:")
     # Prompt to add at least one address
     while True:
         print("   Enter Address Info")
         number, street, city = get_address()
         # Add address to Address table if it doesn't already exist
-        dbTier.insert_address(conn, number, street, city)
+        dbTier.insert_address(conn, number, street, city, commit=False)
         # Add to client addresses
-        if dbTier.insert_client_address(conn, email, number, street, city):
+        if dbTier.insert_client_address(conn, email, number, street, city, commit=False):
             print(f"   Address {number} {street}, {city} added.")
+            one_addr = True
         else:
-            print("   Failed to add address. Client already registerd to address")
-            continue # continue to make sure at least 1 address is valid
+            print("   Failed to add address. The Client is already registered to this address.")
+            if not one_addr:
+                continue # continue to make sure at least 1 address is valid
         next_addr = input("    Enter additional address (y/n)?")
-        # Anything other than 'y' will just continue
+        # Anything other than 'y' will break
         if next_addr.lower() != "y":
             break
 
+    print("\nNew client payment registration:")
     # Prompt to add at least one credit card
     while True:
-        cc = input("   Enter a credit card number (or 'done' to finish): ")
-        if cc.lower() == 'done':
-            break
-        print("   Enter payment address: ")
-        number, street, city = get_address()
-        dbTier.insert_address(conn, number, street, city)
-        if dbTier.insert_credit_card(conn, cc, email, number, street, city):
-            print(f"\nCredit card {cc} added to your profile.")
-        else:
-            print("\nFailed to add credit card. Card already in use")
+        cc = input("   Enter Credit Card Number: ")
+        while not is_valid_card(cc):
+            cc = input("   Invlalid card. Please try again: ")
 
-    print("\nSetup complete. You can now log in as a client.")
+        print("   Payment address:")
+        number, street, city = get_address()
+        # Add address to Address table if it doesn't already exist
+        dbTier.insert_address(conn, number, street, city, commit=False)
+        # Add to client addresses
+        if dbTier.insert_credit_card(conn, cc, email, number, street, city, commit=False):
+            print(f"\nCredit card {cc} added to your profile.")
+            one_cc = True
+        else:
+            print("\n   Failed to add credit card. Card already in use.")
+            if not one_cc:
+                continue # continue to make sure at least 1 address is valid
+        next_addr = input("    Enter additional credit card (y/n)?")
+        # Anything other than 'y' will break
+        if next_addr.lower() != "y":
+            break
+
+
+    # Only commit changes if at least 1 address and credit card have been added
+    if one_addr and one_cc:
+        print("\nSetup complete. You can now log in as a client.")
+        conn.commit()
+    ## If something went wrong and there is not at least 1 credit card and 1 address, discard changes
+    else:
+        print("\nClient setup failed. Discarding new client information.")
+        conn.rollback()
 
 
 def client_login(conn):
@@ -96,6 +124,8 @@ def client_menu(conn, email):
                     print("   Failed to add address. Client already registerd to address")
             case '2':
                 cc = input("   Enter credit card number: ")
+                while not is_valid_card(cc):
+                    cc = input("   Invlalid card. Please try again: ")
                 print("   Enter payment address: ")
                 number, street, city = get_address()
                 dbTier.insert_address(conn, number, street, city)
