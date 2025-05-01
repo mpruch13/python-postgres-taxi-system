@@ -25,7 +25,7 @@ def display_models_rents(conn):
     # Print the list 
     max_width = 9
     print("\nCar models and total rents:")
-    print(f"{'Car ID':>{max_width}}{'Model ID':>{max_width+3}}{'Color':>{max_width}}{'Year':>{max_width}}{'Transmission':>{max_width+5}}{'Rents':>{max_width}}")
+    print(f"{'Model ID':>{max_width}}{'Car ID':>{max_width+3}}{'Color':>{max_width}}{'Year':>{max_width}}{'Transmission':>{max_width+5}}{'Rents':>{max_width}}")
     print('-' * (((max_width) * 6)+8))
     for model_id, car_id, color, year, transmission, rent_count in models_rents:
         print(f"{model_id:>{max_width}}{car_id:>{max_width+3}}{color:>{max_width}}{year:>{max_width}}{transmission:>{max_width+5}}{rent_count:>{max_width}}")
@@ -219,7 +219,7 @@ def manage_drivers(conn):
         print("   2. Remove existing driver")
         print("   3. Edit driver info")
         print("   4. Return to manager menu")
-        user_input = input("Enter a command (1-3): ")
+        user_input = input("Enter a command (1-4): ")
         match user_input:
             case "1":
                 add_driver(conn)
@@ -247,7 +247,7 @@ def manager_options(conn):
     """Main manager menu routing to specific actions"""
     user_input = ''
     while(user_input != 'x'):
-        print("Manager actions:")
+        print("\nManager actions:")
         print("   1. Manage Cars\n"\
               "   2. Manage Drivers\n"\
               "   3. List top clients\n"\

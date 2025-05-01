@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS Rent(
       --the application.
    -- Rent: Added foreign key to Rent (Rule 4)
 CREATE TABLE IF NOT EXISTS Review(
-    review_id CHAR(8),
+    review_id CHAR(8) UNIQUE,
 	driver text,
 	client text,
     message text,

@@ -1,11 +1,42 @@
 ## Contains all of the methods for client-specific actions
 
 import dbTier
+from datetime import datetime
+import re
+
+def increment_id(id):
+    """Automatically increments the id by one so the client
+      doesn't have to manually enter a new id for new rents and reviews"""
+    if id[2].isalpha():
+        prefix = id[:3]
+        number = int(id[3:]) + 1
+        new_id = f"{prefix}{number:05d}"
+    else:
+        prefix = id[0]
+        number = int(id[1:]) + 1
+        new_id = f"{prefix}{number:07d}"
+    return new_id
+
+def is_valid_date(date_str):
+    """Checks that a date is valid
+    
+    Returns True if valid, false otherwise"""
+    date_pattern = r'^\d{4}-\d{2}-\d{2}$'
+    if not re.match(date_pattern, date_str):
+        return False
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
 
 def is_valid_card(cc):
     return len(cc) == 16 and cc.isnumeric()
 
 def get_address():
+    """Prompts user for an address
+    
+    Returns tuple of strings (number, street, city)"""
     number = input("     Number: ")
     while not number.isnumeric():
         number = input("     Invalid address number. Try again: ")
@@ -135,15 +166,24 @@ def client_menu(conn, email):
                     print("\nFailed to add credit card. Card already in use")
             case '3':
                 date = input("   Enter date (YYYY-MM-DD) to search available models: ")
+                while not is_valid_date(date):
+                    date = input("Invalid date. Please try again: ")
+
                 models = dbTier.find_available_models(conn, date)
                 print(f"\n{'Model ID':<10}{'Car ID':<10}{'Color':<10}{'Trans.':<10}{'Year':<6}")
                 print('-' * 46)
                 for mid, cid, color, trans, year in models:
                     print(f"{mid:<10}{cid:<10}{color:<10}{trans:<10}{year:<6}")
             case '4':
-                rent_id = input("   Enter new rent ID: ")
+                # New: Automatically create new Rent_id
+                rent_id = increment_id(dbTier.get_latest_rent_id(conn))
+
                 date = input("   Enter rent date (YYYY-MM-DD): ")
+                while not is_valid_date(date):
+                    date = input("Invalid date. Please try again: ")
+
                 model_id = input("   Enter model ID to book: ")
+
                 if dbTier.book_rent(conn, rent_id, date, email, model_id):
                     print(f"\nRent {rent_id} successfully booked.")
                 else:
@@ -152,14 +192,34 @@ def client_menu(conn, email):
                 rents = dbTier.get_client_rents(conn, email)
                 print(f"\n{'Rent ID':<10}{'Date':<12}{'Model':<10}{'Car':<10}{'Driver':<15}")
                 print('-' * 57)
-                for rid, d, mid, cid, color, trans, year, drv in rents:
-                    print(f"{rid:<10}{d:<12}{mid:<10}{cid:<10}{drv:<15}")
+                for rid, date, mid, cid, color, trans, year, drv in rents:
+                    # New: Have to cast data as a str to get it to print properly for some reason
+                    print(f"{rid:<10}{str(date):<12}{mid:<10}{cid:<10}{drv:<15}")
             case '6':
-                review_id = input("   Enter new review ID: ")
                 driver = input("   Enter driver name to review: ")
+
+                # Check if client has reviewed this driver before, if so, ask if they'd like to update their review
+                has_reviewed = dbTier.has_reviewed(conn, email, driver)
+                if has_reviewed:
+                    update = input("   You have already review this driver. Would you like to update your review (y/n)?")
+                    if not update.lower() == 'y':
+                        print("\nCancelling review.")
+                        return
+
+                # Prompt for message and rating
                 message = input("   Enter review message: ")
                 rating = input("   Enter rating (0-5): ")
-                if dbTier.insert_review(conn, review_id, email, driver, message, int(rating)):
+                while not (rating.isnumeric() and int(rating) >= 0 and int(rating) <= 5):
+                    rating = input("   Invalid rating. Try again: ")
+
+                # Update or submit new review if 
+                if has_reviewed:
+                    successful = dbTier.update_review(conn, email, driver, message, rating)
+                else:
+                    review_id = increment_id(dbTier.get_latest_review_id(conn))       
+                    successful = dbTier.insert_review(conn, review_id, email, driver, message, int(rating))
+                
+                if successful:
                     print("\nReview submitted successfully.")
                 else:
                     print("\nFailed to submit review.")

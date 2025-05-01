@@ -160,7 +160,7 @@ def insert_manager(conn:psycopg2.extensions.connection, ssn, email, name):
         if curr.fetchone() != None:
             is_successful = True
     except Exception as e:
-        print("\Error:", e)
+        print("\nError:", e)
         conn.rollback()
     finally:
         curr.close()
@@ -217,16 +217,10 @@ def get_driver(conn:psycopg2.extensions.connection, name):
     curr.close()
     return driver
 
-def get_client(conn:psycopg2.extensions.connection, email):
-    dbQuery = "SELECT * FROM Client WHERE email = %s"
-    curr = conn.cursor()
-    curr.execute(dbQuery, (email,))
-    client = curr.fetchone()
-    curr.close()
-    return client
 
 
-# New: Get top-k clients by number of rents
+
+# Get top-k clients by number of rents
 def get_top_k_clients(conn:psycopg2.extensions.connection, k):
     """
     Returns the top k clients along with their rent counts.
@@ -249,7 +243,7 @@ def get_top_k_clients(conn:psycopg2.extensions.connection, k):
     curr.close()
     return results
 
-# New: Get driver statistics (total rents and average rating)
+# Get driver statistics (total rents and average rating)
 def get_driver_stats(conn:psycopg2.extensions.connection):
     """
     Retrieves each driver with total number of rents and average rating.
@@ -274,7 +268,7 @@ def get_driver_stats(conn:psycopg2.extensions.connection):
     curr.close()
     return results
 
-# New: Get clients with address in city1 and rents with drivers in city2
+# Get clients with address in city1 and rents with drivers in city2
 def get_clients_by_cities(conn:psycopg2.extensions.connection, city1, city2):
     """
     Retrieves clients who have at least one address in city1
@@ -483,6 +477,25 @@ def qualify_driver_for_model(conn:psycopg2.extensions.connection, name, model_id
     return return_val
 
 ### Client Options ###
+# For logging in a client
+def get_client(conn: psycopg2.extensions.connection, email):
+    """
+    Searches the database for a client with a matching email.
+
+    Parameters:
+        conn: The database connection
+        email: Client email address
+
+    Returns:
+        Tuple (email, name) if found, or None if no match.
+    """
+    dbQuery = "SELECT email, name FROM Client WHERE email = %s"
+    curr = conn.cursor()
+    curr.execute(dbQuery, (email,))
+    client = curr.fetchone()
+    curr.close()
+    return client
+
 
 def insert_client(conn:psycopg2.extensions.connection, email, name, commit=True):
     """
@@ -585,7 +598,7 @@ def insert_credit_card(conn:psycopg2.extensions.connection, cc_number, email, nu
         curr.close()
     return is_successful
 
-# New: Find available models for a given date
+# Find available models for a given date
 def find_available_models(conn:psycopg2.extensions.connection, date):
     """
     Retrieves all models available on a specific date.
@@ -619,7 +632,7 @@ def find_available_models(conn:psycopg2.extensions.connection, date):
     curr.close()
     return models
 
-# New: Book a rent, auto-assigning an available driver
+# Book a rent, auto-assigning an available driver
 def book_rent(conn:psycopg2.extensions.connection, rent_id, date, client, model_id):
     """
     Books a new rent for a client and model on a given date.
@@ -636,21 +649,40 @@ def book_rent(conn:psycopg2.extensions.connection, rent_id, date, client, model_
         True if booking successful, False otherwise
     """
     curr = conn.cursor()
+
+    # New: Check if client has already booked a rent on that day
+    try:
+    # Find an available driver for the model on that date
+        client_query = """
+            SELECT *
+            FROM Rent
+            WHERE client = %s AND date = %s
+            """
+        curr.execute(client_query, (client, date))
+    except Exception as e:
+        # If any exception occurs, print a message and return False
+        print(f"\nTry again", e)
+        curr.close()
+        conn.rollback()
+        return False
+    row = curr.fetchone()
+    if row:
+        print("\nClient has already booked a rent on this date")
+        curr.close()
+        return False
     
     try:
     # Find an available driver for the model on that date
         driver_query = """
-            SELECT d.driver
-            FROM Drives d
-            LEFT JOIN Rent r ON d.driver = r.driver AND r.date = %s
+            SELECT d.driver 
+            FROM Drives d LEFT JOIN Rent r ON d.driver = r.driver AND r.date = %s
             WHERE d.model = %s AND r.rent_id IS NULL
             LIMIT 1;
             """
-    
         curr.execute(driver_query, (date, model_id))
     except Exception as e:
         # If any exception occurs, print a message and return False
-        print(f"\nTry again")
+        print(f"\nTry again", e)
         curr.close()
         conn.rollback()
         return False
@@ -660,6 +692,8 @@ def book_rent(conn:psycopg2.extensions.connection, rent_id, date, client, model_
         curr.close()
         return False
     driver = row[0]
+
+
 
     # Insert the new rent
     insert_query = "INSERT INTO Rent (rent_id, date, client, driver, model) VALUES (%s, %s, %s, %s, %s)"
@@ -675,7 +709,59 @@ def book_rent(conn:psycopg2.extensions.connection, rent_id, date, client, model_
     curr.close()
     return True
 
-# New: Get a client's rent history
+
+# Get latesst rent and review ID's
+def get_latest_rent_id(conn:psycopg2.extensions.connection):
+    """
+    Retrieves the latest rent id
+
+    Parameters:
+        conn: The database connection
+
+    Returns:
+        The latest rent id
+    """
+    dbQuery = """
+        SELECT rent_id
+        FROM Rent
+        ORDER BY rent_id DESC
+        LIMIT 1;
+    """
+    curr = conn.cursor()
+    curr.execute(dbQuery)
+    rent_id = curr.fetchone()
+    curr.close()
+    if rent_id is None:
+        return 'R0000001'
+    else:
+        return rent_id[0]
+    
+def get_latest_review_id(conn:psycopg2.extensions.connection):
+    """
+    Retrieves the latest review id
+
+    Parameters:
+        conn: The database connection
+
+    Returns:
+        The latest review id
+    """
+    dbQuery = """
+        SELECT review_id
+        FROM Review
+        ORDER BY review_id DESC
+        LIMIT 1;
+    """
+    curr = conn.cursor()
+    curr.execute(dbQuery)
+    rent_id = curr.fetchone()
+    curr.close()
+    if rent_id is None:
+        return 'RV000001'
+    else:
+        return rent_id[0]
+
+# Get a client's rent history
 def get_client_rents(conn:psycopg2.extensions.connection, client):
     """
     Retrieves all rents booked by a given client.
@@ -700,7 +786,75 @@ def get_client_rents(conn:psycopg2.extensions.connection, client):
     curr.close()
     return rents
 
-# New: Insert a review if client has rented from that driver
+ # New: Checks if client has reviewed a driver so our app can be consistent with ER-diagram (review can have 1 client/driver combination)
+def has_reviewed(conn:psycopg2.extensions.connection, client, driver):
+    """
+    Checks if client has reviewed a driver
+
+    Parameters:
+        conn: The database connection
+        client: Client email
+        driver: Driver name
+
+    Returns:
+        True if client has driver, False otherwise """
+
+    dbQuery = "SELECT 1 FROM Review WHERE client = %s AND driver = %s"
+    
+    with conn.cursor() as curr:
+        try:
+            curr.execute(dbQuery, (client, driver))
+            if curr.fetchone():
+                return True
+            else:
+                return False
+        # This query should never really throw an exception, but just in case:
+        except Exception as e:
+            print("Database error occurred when checking if client has reviewed driver:", e)
+            conn.rollback()
+
+ # New: Checks if client has reviewed a driver so our app can be consistent with ER-diagram (review can have 1 client/driver combination)
+def update_review(conn:psycopg2.extensions.connection, client, driver, message, rating):
+    """
+    Updates a client's review for a driver
+
+    Parameters:
+        conn: The database connection
+        client: Client email
+        driver: Driver name
+
+    Returns:
+        True if client update was successful, False otherwise """
+
+    review_id_query = "SELECT review_id FROM Review WHERE client = %s AND driver = %s"
+    update_query = """
+                UPDATE Review 
+                SET message = %s, rating = %s
+                WHERE review_id = %s AND driver = %s
+                RETURNING *"""
+    with conn.cursor() as curr:
+        try:
+            curr.execute(review_id_query, (client, driver))
+            review_id = curr.fetchone()[0]
+            # shouldn't ever be none, but just in case
+            if review_id is None:
+                print("Could not update review, no review was found")
+                return False
+            curr.execute(update_query, (message, rating, review_id, driver))
+            if curr.fetchone():
+                conn.commit()
+                return True
+            else:
+                print("Failed to update review")
+                conn.rollback()
+                return False
+        except Exception as e:
+            print("Database Error while updating review:", e)
+            conn.rollback()
+            return False
+
+
+# Insert a review if client has rented from that driver
 def insert_review(conn:psycopg2.extensions.connection, review_id, client, driver, message, rating):
     """
     Inserts a review for a driver by a client, only if the client has a prior rent with that driver.
