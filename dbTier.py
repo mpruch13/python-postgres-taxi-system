@@ -49,6 +49,32 @@ def insert_address(conn:psycopg2.extensions.connection, number, road, city, comm
 
 ### Manager Options ###
 
+def has_models(conn:psycopg2.extensions.connection):
+    """Checks that models exist in the db
+    
+    Returns True if there is at least 1 row in the model table, False otherwise."""
+    dbQuery = "SELECT * FROM Model;"
+    with conn.cursor() as curr:
+        curr.execute(dbQuery)
+        # returns list of tuples [(model_id, color, transmission, count(rents)), ...)]
+        if curr.fetchall():
+            return True
+        else:
+            return False
+        
+def has_cars(conn:psycopg2.extensions.connection):
+    """Checks that cars exist in the db
+    
+    Returns True if there is at least 1 row in the car table, False otherwise."""
+    dbQuery = "SELECT * FROM Car;"
+    with conn.cursor() as curr:
+        curr.execute(dbQuery)
+        # returns list of tuples [(model_id, color, transmission, count(rents)), ...)]
+        if curr.fetchall():
+            return True
+        else:
+            return False
+
 def get_models_rents(conn:psycopg2.extensions.connection):
     """
     Gets a list of all car models alongside the number of times each
@@ -256,7 +282,7 @@ def get_driver_stats(conn:psycopg2.extensions.connection):
     """
     dbQuery = """SELECT d.name,
                         COUNT(r.rent_id) AS total_rents,
-                        COALESCE(ROUND(AVG(rv.rating)::numeric,2),0) AS avg_rating
+                        COALESCE(ROUND(AVG(rv.rating)::numeric,2),-1) AS avg_rating
                  FROM Driver d
                  LEFT JOIN Rent r ON d.name = r.driver
                  LEFT JOIN Review rv ON d.name = rv.driver

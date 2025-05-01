@@ -8,7 +8,7 @@ def get_address():
     while not number.isnumeric():
         number = input("     Invalid address number. Try again: ")
     street  = input("     Enter Street: ")
-    city = input("     Enter City:")
+    city = input("     Enter City: ")
     return number, street, city
 
 def isvalid_ssn(ssn):
@@ -23,12 +23,16 @@ def display_models_rents(conn):
     # dbTier returns list of tuples: (modle_id, car_id, color, transmission, rent_count))
     models_rents = dbTier.get_models_rents(conn)
     # Print the list 
-    max_width = 9
+    if models_rents:
+        color_width = max(len(tup[2]) for tup in models_rents) + 2 # get width of color so a long color string doesn't break the output
+    else:
+        color_width = 7
+
     print("\nCar models and total rents:")
-    print(f"{'Model ID':>{max_width}}{'Car ID':>{max_width+3}}{'Color':>{max_width}}{'Year':>{max_width}}{'Transmission':>{max_width+5}}{'Rents':>{max_width}}")
-    print('-' * (((max_width) * 6)+8))
+    print(f"{'Model ID':<10}{'Car ID':<10}{'Color':<{color_width}}{'Year':<6}{'Trans.':<10}{'Rents'}")
+    print('-' * (41+color_width))
     for model_id, car_id, color, year, transmission, rent_count in models_rents:
-        print(f"{model_id:>{max_width}}{car_id:>{max_width+3}}{color:>{max_width}}{year:>{max_width}}{transmission:>{max_width+5}}{rent_count:>{max_width}}")
+        print(f"{model_id:<10}{car_id:<10}{color:<{color_width}}{year:<6}{transmission:<10}{rent_count}")
     print()
 
 
@@ -40,10 +44,10 @@ def add_model(conn):
 
     # Prompt User for existing Car ID
     car_id = input("   Enter an existing car ID: ")
-    while len(car_id) != 8 and dbTier.get_car(conn, car_id) == None:
+    while len(car_id) != 8 or dbTier.get_car(conn, car_id) == None:
         if car_id.lower() == "x":
-            return
-        car_id = input("   Car ID is invalid or does not exist. Try again: ")
+            print("\nAdd model cancelled.")
+        car_id = input("   Car ID is invalid or does not exist. Try again (or enter x to cancel): ")
 
     # Prompt user for new Model ID
     model_id = input("   Enter an 8-character long model ID: ")
@@ -103,6 +107,63 @@ def add_driver(conn):
     else:
         print(f"\nFailed to add driver. Driver \"{name}\" already exists.")
 
+def remove_car(conn):
+    ## First, double check that we have models to remove
+    if not dbTier.has_cars(conn):
+        print("\nThere are no car brands to remove!")
+        return
+    # Remove a car and its models
+    car_id = input("   Enter the car_id to remove: ")
+    while len(car_id) != 8:
+        if car_id.lower() == "x":
+            print("\nRemove car cancelled.")
+            return
+        car_id = input("   Invalid Car ID. Try again (or enter x to cancel): ")
+
+    ##removal validation
+    confirm = input(f"   Are you sure you want to delete car {car_id} and its models? (y/n): ")
+    if confirm.lower() == 'y':
+        curr = conn.cursor()
+        try:
+            curr.execute("DELETE FROM Car WHERE car_id = %s", (car_id,))
+            if curr.rowcount > 0:
+                conn.commit()
+                print(f"\nSuccessfully removed car {car_id} and its models")
+            else:
+                conn.rollback()
+                print("\nFailed to remove car. Car brand does not exist.")
+        except Exception as e:
+            print("\nFailed to remove car: ", e)
+        finally:
+            curr.close()
+    else:
+        print("Deletion cancelled")
+
+def remove_model(conn):
+    if not dbTier.has_models(conn):
+        print("\nThere are no models to remove!")
+        return
+    # Remove a car model
+    model_id = input("   Enter the model_id to remove: ")
+    ##removal validation
+    confirm = input(f"   Are you sure you want to delete model {model_id}? (y/n): ")
+    if confirm.lower() == 'y':
+        curr = conn.cursor()
+        try:
+            curr.execute("DELETE FROM Model WHERE model_id = %s", (model_id,))
+            if curr.rowcount > 0:
+                conn.commit()
+                print(f"\nSuccessfully removed model {model_id}")
+            else:
+                conn.rollback()
+                print("\nFailed to remove model. Model does not exist.")
+        except Exception as e:
+            print("\nFailed to remove model: ", e)
+        finally:
+            curr.close()
+    else:
+        print("Deletion cancelled.")
+
 
 def edit_cars(conn):
     """Sub-menu for managing cars and models"""
@@ -121,39 +182,9 @@ def edit_cars(conn):
             case "2":
                 add_model(conn)
             case "3":
-                # Remove a car model
-                model_id = input("   Enter the model_id to remove: ")
-                ##removal validation
-                confirm = input(f"   Are you sure you want to delete model {model_id}? (y/n): ")
-                if confirm.lower() == 'y':
-                    curr = conn.cursor()
-                    try:
-                        curr.execute("DELETE FROM Model WHERE model_id = %s", (model_id,))
-                        conn.commit()
-                        print(f"\nSuccessfully removed model {model_id}")
-                    except Exception as e:
-                        print("\nFailed to remove model: ", e)
-                    finally:
-                        curr.close()
-                else:
-                    print("Deletion cancelled.")
+                remove_model(conn)
             case "4":
-                # Remove a car and its models
-                car_id = input("   Enter the car_id to remove: ")
-                ##removal validation
-                confirm = input(f"   Are you sure you want to delete car {car_id} and its models? (y/n): ")
-                if confirm.lower() == 'y':
-                    curr = conn.cursor()
-                    try:
-                        curr.execute("DELETE FROM Car WHERE car_id = %s", (car_id,))
-                        conn.commit()
-                        print(f"\nSuccessfully removed car {car_id} and its models")
-                    except Exception as e:
-                        print("\nFailed to remove car: ", e)
-                    finally:
-                        curr.close()
-                else:
-                    print("Deletion cancelled")
+              remove_car(conn)
             case "5":
                 user_input = 'x'
             case _:
@@ -281,7 +312,10 @@ def manager_options(conn):
                 print(f"\n{'Name':<20}{'Total Rents':<12}{'Avg Rating':<10}")
                 print("-" * 42)
                 for name, total, avg in stats:
-                    print(f"{name:<20}{total:<12}{avg:<10.2f}")
+                    if avg == -1:
+                        print(f"{name:<20}{total:<12}{'N/A'}")
+                    else:
+                        print(f"{name:<20}{total:<12}{avg:<10.2f}")
                 print()
             case "6":
                 # Client/Driver city search
