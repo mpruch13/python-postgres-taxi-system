@@ -1,0 +1,8 @@
+# Contains info needed to connect to the database.
+# Replace content of each line with your local db's info
+
+project     # database name
+localhost   # db host ip
+postgres      # user 
+imart97    # password
+5432        # port
