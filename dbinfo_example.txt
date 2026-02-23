@@ -1,0 +1,8 @@
+# Contains info needed to connect to the database.
+# Replace content of each line with your local db's info
+
+db_name      # Your local PostgreSQL database name
+localhost    # Database host (usually localhost or 127.0.0.1)
+db_user      # Your PostgreSQL username
+db_password  # Your PostgreSQL password
+5432         # Port number (PostgreSQL default is 5432)
